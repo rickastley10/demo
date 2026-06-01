@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>minesweeper</title>
+<style>
+    body {
+    margin: 0;
+    background: #111;
+    overflow: hidden;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 100vw;
+    height: 100vh;
+}
+    canvas {
+    background: black;
+    touch-action: none;
+
+    width: min(100vw, 100vh);
+    height: min(100vw, 100vh);
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const WINDOW_WIDTH = 400;
+const WINDOW_HEIGHT = 440;
+const w = 40;
+const h = 40;
+
+/* ============================================================
+   GLOBALS
+   ============================================================ */
+const canvas = document.getElementById("game");
+canvas.width = WINDOW_WIDTH;
+canvas.height = WINDOW_HEIGHT;
+
+const ctx = canvas.getContext("2d");
+
+let running = true;
+let dir = "right";
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+const keys = {};
+
+window.addEventListener("keydown", (e) => {
+    keys[e.key] = true;
+});
+
+window.addEventListener("keyup", (e) => {
+    keys[e.key] = false;
+});
+
+/* ============================================================
+   UNIVERSAL INPUT (Single handler for Mouse + Touch)
+   ============================================================ */
+function handleInput(e) {
+    e.preventDefault();
+
+    let clientX, clientY;
+    if (e.touches) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    // Scale coordinates to match canvas size
+    const scaleX = WINDOW_WIDTH / rect.width;
+    const scaleY = WINDOW_HEIGHT / rect.height;
+    const canvasX = x * scaleX;
+    const canvasY = y * scaleY;
+
+    if (win!==2){
+        reset()
+    }
+
+    for (let i of grid){
+
+        if ((i["x"] <= canvasX && canvasX <= i["x"]+w) && (i["y"] <= canvasY && canvasY <= i["y"]+w)) {
+            pausetimer=0
+            if (mode===1){
+                if(i["mine"]===1){
+                    win=1
+                }
+                else{
+
+                    if (i["n"]===0){
+                        opencell(i["x"], i["y"])
+                    }
+                    else{
+                        i["open"]=1
+                    }
+                }
+            }
+            else if(mode===2){
+                if (i["flag"]===0){
+                    i["flag"]=1
+                }
+                else{
+                    i["flag"]=0
+                }
+
+            }
+
+
+        }
+    }
+    if(180 <= canvasX && canvasX <= 220 && 400 <= canvasY && canvasY <= 440){
+        if (mode===1){
+            mode=2
+        }
+        else if(mode===2){
+            mode=1
+        }
+    }
+
+
+}
+
+canvas.addEventListener("touchstart", handleInput);
+canvas.addEventListener("mousedown", handleInput);
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+
+function reset(){
+    x=0;
+
+        grid = []
+        for (x=0;x<10;x++){
+            for(y=0;y<10;y++){
+                grid.push({
+                    "x":x*w,
+                    "y":y*w,
+                    "mine":0,
+                    "open":0,
+                    "n":0,
+                    "flag":0
+                })
+            }
+        }
+
+        mines=[]
+        for (z=0; z<15;z++){
+            mines.push({
+                "x":(Math.floor(Math.random()*10))*w,
+                "y":(Math.floor(Math.random()*10))*w
+            })
+
+        }
+
+        for (let i of grid){
+            for (let o of mines){
+                if(i["x"]===o["x"] && i["y"]===o["y"]){
+                    i["mine"]=1;
+                    i["n"]=9;
+                }
+            }
+        }
+        for (let i of grid){
+            for (let o of grid){
+                if(i["x"]===o["x"]+w && i["y"]===o["y"] && o["mine"]===1){
+                    i["n"]=i["n"]+1
+                }
+                if(i["x"]===o["x"]-w && i["y"]===o["y"] && o["mine"]===1){
+                    i["n"]=i["n"]+1
+                }
+                if(i["x"]===o["x"] && i["y"]===o["y"]+w && o["mine"]===1){
+                    i["n"]=i["n"]+1
+                }
+                if(i["x"]===o["x"] && i["y"]===o["y"]-w && o["mine"]===1){
+                    i["n"]=i["n"]+1
+                }
+
+                if(i["x"]===o["x"]+w && i["y"]===o["y"]+w && o["mine"]===1){
+                    i["n"]=i["n"]+1
+                }
+                if(i["x"]===o["x"]+w && i["y"]===o["y"]-w && o["mine"]===1){
+                    i["n"]=i["n"]+1
+                }
+                if(i["x"]===o["x"]-w && i["y"]===o["y"]-w && o["mine"]===1){
+                    i["n"]=i["n"]+1
+                }
+                if(i["x"]===o["x"]-w && i["y"]===o["y"]+w && o["mine"]===1){
+                    i["n"]=i["n"]+1
+                }
+            }
+        }
+
+
+        win=2;
+        pausetimer=1
+        counter=0
+        timer=0
+
+}
+
+let x=0;
+let pausetimer=1
+let counter=0
+let timer=0
+let mode=1; // mode 1 normal clicks
+// mode 2 - flags
+let win=2;
+let grid = []
+for (x=0;x<10;x++){
+    for(y=0;y<10;y++){
+        grid.push({
+            "x":x*w,
+            "y":y*w,
+            "mine":0,
+            "open":0,
+            "n":0,
+            "flag":0
+        })
+    }
+}
+
+let mines=[]
+for (z=0; z<15;z++){
+    mines.push({
+        "x":(Math.floor(Math.random()*10))*w,
+        "y":(Math.floor(Math.random()*10))*w
+    })
+
+}
+
+for (let i of grid){
+    for (let o of mines){
+        if(i["x"]===o["x"] && i["y"]===o["y"]){
+            i["mine"]=1;
+            i["n"]=9;
+        }
+    }
+}
+for (let i of grid){
+    for (let o of grid){
+        if(i["x"]===o["x"]+w && i["y"]===o["y"] && o["mine"]===1){
+            i["n"]=i["n"]+1
+        }
+        if(i["x"]===o["x"]-w && i["y"]===o["y"] && o["mine"]===1){
+            i["n"]=i["n"]+1
+        }
+        if(i["x"]===o["x"] && i["y"]===o["y"]+w && o["mine"]===1){
+            i["n"]=i["n"]+1
+        }
+        if(i["x"]===o["x"] && i["y"]===o["y"]-w && o["mine"]===1){
+            i["n"]=i["n"]+1
+        }
+
+        if(i["x"]===o["x"]+w && i["y"]===o["y"]+w && o["mine"]===1){
+            i["n"]=i["n"]+1
+        }
+        if(i["x"]===o["x"]+w && i["y"]===o["y"]-w && o["mine"]===1){
+            i["n"]=i["n"]+1
+        }
+        if(i["x"]===o["x"]-w && i["y"]===o["y"]-w && o["mine"]===1){
+            i["n"]=i["n"]+1
+        }
+        if(i["x"]===o["x"]-w && i["y"]===o["y"]+w && o["mine"]===1){
+            i["n"]=i["n"]+1
+        }
+    }
+}
+
+function opencell(x, y){
+
+    for (let i of grid){
+        if (i["x"]===x && i["y"]===y && i["n"]!==0 && i["n"]!==9){
+            i["open"]=1
+        }
+        for (let o of grid){
+            if (i["x"]===x && i["y"]===y && i["n"]===0){
+                i["open"]=1
+                if(i["x"]===o["x"]+w && i["y"]===o["y"] && o["open"]!==1){
+                    i["open"]=1
+                    opencell(o["x"], o["y"])
+                }
+                if(i["x"]===o["x"]-w && i["y"]===o["y"] && o["open"]!==1){
+                    i["open"]=1
+                    opencell(o["x"], o["y"])
+                }
+                if(i["x"]===o["x"] && i["y"]===o["y"]+w && o["open"]!==1){
+                    i["open"]=1
+                    opencell(o["x"], o["y"])
+                }
+                if(i["x"]===o["x"] && i["y"]===o["y"]-w && o["open"]!==1){
+                    i["open"]=1
+                    opencell(o["x"], o["y"])
+                }
+
+                if(i["x"]===o["x"]+w && i["y"]===o["y"]+w && o["open"]!==1){
+                    i["open"]=1
+                    opencell(o["x"], o["y"])
+                }
+                if(i["x"]===o["x"]+w && i["y"]===o["y"]-w && o["open"]!==1){
+                    i["open"]=1
+                    opencell(o["x"], o["y"])
+                }
+                if(i["x"]===o["x"]-w && i["y"]===o["y"]-w && o["open"]!==1){
+                    i["open"]=1
+                    opencell(o["x"], o["y"])
+                }
+                if(i["x"]===o["x"]-w && i["y"]===o["y"]+w && o["open"]!==1){
+                    i["open"]=1
+                    opencell(o["x"], o["y"])
+                }
+            }
+        }
+    }
+
+}
+
+/* ============================================================
+   MAIN LOOP
+   ============================================================ */
+function game_loop() {
+    if (!running) return;
+
+        ctx.font = "15px Arial";
+        /* ===== RENDER ===== */
+        //clear screen
+        ctx.fillStyle="#000000"
+        ctx.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
+
+        for (let i of grid){
+            if(i["mine"]===1){
+                if (win !== 2){ctx.fillStyle="#FF0000";ctx.fillRect(i["x"], i["y"], w, h);}
+                else if (win === 2){ctx.fillStyle="#aaaaaa";ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-4);}
+            }
+            if(i["mine"]===0 && i["open"]===0){
+                ctx.fillStyle="#aaaaaa"
+                ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-4)
+            }
+            if(i["mine"]===0 && i["open"]===1){
+
+                if (i["n"]=== 1){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-8)
+                    ctx.fillStyle="#0000FF"
+                    ctx.fillText(i["n"],i["x"]+w/2, i["y"]+w/2)
+                }
+                else if (i["n"]=== 2){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-8)
+                    ctx.fillStyle="#00FF00"
+                    ctx.fillText(i["n"],i["x"]+w/2, i["y"]+w/2)
+                }
+                else if (i["n"]=== 3){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-8)
+                    ctx.fillStyle="#FF0000"
+                    ctx.fillText(i["n"],i["x"]+w/2, i["y"]+w/2)
+                }
+                else if (i["n"]=== 4){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-8)
+                    ctx.fillStyle="#000055"
+                    ctx.fillText(i["n"],i["x"]+w/2, i["y"]+w/2)
+                }
+                else if (i["n"]=== 5){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-8)
+                    ctx.fillStyle="#550000"
+                    ctx.fillText(i["n"],i["x"]+w/2, i["y"]+w/2)
+                }
+                else if (i["n"]=== 6){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-8)
+                    ctx.fillStyle="#00aaaa"
+                    ctx.fillText(i["n"],i["x"]+w/2, i["y"]+w/2)
+                }
+                else if (i["n"]=== 7){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-8)
+                    ctx.fillStyle="#000000"
+                    ctx.fillText(i["n"],i["x"]+w/2, i["y"]+w/2)
+                }
+                else if (i["n"]=== 8){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-8)
+                    ctx.fillStyle="#CCCCCC"
+                    ctx.fillText(i["n"],i["x"]+w/2, i["y"]+w/2)
+                }
+                else if (i["n"]===0){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"], i["y"], w, h)
+                }
+            }
+            if (i["flag"]===1){
+                if(i["open"]===1){
+                    ctx.fillStyle="#DDDDDD"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-4)
+                }
+                else{
+                    ctx.fillStyle="#aaaaaa"
+                    ctx.fillRect(i["x"]+2, i["y"]+2, w-4, h-4)
+                }
+
+
+                ctx.fillStyle="#000000"
+                ctx.fillRect(i["x"]+8, i["y"]+30, 24, 8)
+
+                ctx.fillStyle="#000000"
+                ctx.fillRect(i["x"]+20, i["y"]+14, 4, 20)
+                ctx.fillStyle="#FF0000"
+                ctx.fillRect(i["x"]+10, i["y"]+10, 14, 8)
+
+            }
+        }
+
+
+
+if(mode===2){
+    ctx.fillStyle="#DDDDDD"
+    ctx.fillRect(180+2, 400+2, w-4, h-4)
+
+    ctx.fillStyle="#000000"
+    ctx.fillRect(180+8, 400+30, 24, 8)
+    ctx.fillStyle="#000000"
+    ctx.fillRect(180+20, 400+14, 4, 20)
+    ctx.fillStyle="#FF0000"
+    ctx.fillRect(180+10, 400+10, 14, 8)
+}
+else if(mode===1){
+    ctx.fillStyle="#DDDDDD"
+    ctx.fillRect(180+2, 400+2, w-4, h-4)
+
+    ctx.fillStyle="#000000"
+    ctx.fillRect(180+10, 400+10, w-20, h-20)
+    ctx.fillStyle="#000000"
+    ctx.fillRect(180+20, 400, 2, h)
+    ctx.fillStyle="#000000"
+    ctx.fillRect(180, 400+20, w, 2)
+    ctx.fillRect(180+20, 400, 2, h)
+    ctx.fillStyle="#000000"
+    ctx.fillRect(180+5, 400+5, 5, 5)
+    ctx.fillRect(180+30, 400+5, 5, 5)
+    ctx.fillRect(180+5, 400+30, 5, 5)
+    ctx.fillRect(180+30, 400+30, 5, 5)
+}
+
+
+
+
+    x=0
+    for (let i of grid){
+        if(i["open"]===1){
+            x=x+1
+        }
+        if(i["mine"]===1){
+            x=x+1
+        }
+    }
+    if(x===100){
+        win=3
+    }
+
+
+    if(pausetimer===0){
+        if (counter !== 20){
+            counter=counter+1
+        }
+        else{
+            counter=0
+            timer=timer+1
+        }
+
+    }
+
+    ctx.font = "30px Arial";
+    ctx.fillStyle="#FF0000"
+    ctx.fillText(timer,80, 430)
+
+    if (win===3){
+        ctx.font = "30px Arial";
+        ctx.fillStyle="#000000"
+        ctx.fillText("you won",200, 200)
+        ctx.font = "30px Arial";
+        ctx.fillStyle="#FF0000"
+        ctx.fillText("you won",200+2, 200+2)
+        pausetimer=1
+
+    }
+    if (win===1){
+        ctx.font = "30px Arial";
+        ctx.fillStyle="#000000"
+        ctx.fillText("you lost",200, 200)
+        ctx.font = "30px Arial";
+        ctx.fillStyle="#FF0000"
+        ctx.fillText("you lost",200+2, 200+2)
+        pausetimer=1
+
+    }
+
+    setTimeout(() => {
+        requestAnimationFrame(game_loop);
+    }, 50);
+}
+
+game_loop();
+</script>
+</body>
+</html>
